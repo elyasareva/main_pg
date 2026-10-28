@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Simulasi Pembiayaan Emas - PT Pegadaian Kanwil X Bandung</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Aturan khusus cetak PDF A4 1 Halaman Presisi */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #export-area, #export-area * {
+                visibility: visible;
+            }
+            #export-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            /* Memaksa ukuran kertas A4 Landscape & 1 Halaman */
+            @page {
+                size: A4 landscape;
+                margin: 8mm;
+            }
+            html, body {
+                height: 99%;
+                overflow: hidden;
+            }
+            table {
+                font-size: 9px !important;
+            }
+            th, td {
+                padding: 4px 5px !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-emerald-50/50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header Navbar - Pegadaian Theme -->
+    <header class="bg-[#005a36] text-white shadow-lg border-b border-emerald-800 py-4 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <!-- Impor Langsung File Logo Lokal Pegadaian_new_logo.png -->
+                <div class="bg-white p-2 rounded-2xl shadow-md flex items-center justify-center h-16 w-auto flex-shrink-0 border border-slate-100">
+                    <img src="Pegadaian_new_logo.png" id="main-logo-img" alt="Logo PT Pegadaian" class="h-12 w-auto object-contain">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded tracking-wide uppercase">PT PEGADAIAN</span>
+                    </div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-white mt-0.5">Pegadaian Kanwil X Bandung</h1>
+                    <p class="text-xs text-amber-300 font-medium">Monitoring Harga Emas Real-Time & Kalkulator Simulasi Cicilan</p>
+                </div>
+            </div>
+            <div class="text-xs bg-[#00482b] border border-emerald-700/80 px-4 py-2 rounded-xl text-emerald-100 flex flex-col gap-1 shadow-inner">
+                <div class="flex items-center gap-2"><i class="fa-regular fa-clock text-amber-400"></i> Tanggal: <span id="current-date" class="font-bold text-white"></span></div>
+                <div class="flex items-center gap-2"><span id="sync-dot" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span><span id="sync-status">Menyiapkan sinkronisasi harga...</span></div>
+                <div class="text-[10px] text-emerald-200">Harga disinkronkan berkala • <span id="price-updated-at">Belum ada data terbaru</span></div>
+                <button type="button" onclick="fetchGaleri24Prices(true)" class="self-start mt-1 underline text-amber-300 hover:text-white cursor-pointer">Perbarui sekarang</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
+
+        <!-- 1. SELEKSI VENDOR EMAS -->
+        <section class="space-y-3">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-2">
+                    <i class="fa-solid fa-store text-amber-500"></i> Vendor Emas
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="vendor-container">
+                <!-- Galeri 24 (Utama) -->
+                <div onclick="selectVendor('galeri24')" class="vendor-card cursor-pointer bg-white border-2 border-emerald-600 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md relative overflow-hidden group" data-vendor="galeri24">
+                    <div class="vendor-badge absolute top-0 right-0 bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-bl-lg shadow-sm">ACTIVE</div>
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-emerald-700 block mb-1">GALERI 24</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900" id="price-galeri24">Memuat...</h3>
+                            <span class="text-[11px] text-slate-500">per gram</span>
+                        </div>
+                        <img src="galeri 24 pegadaian.jpeg" alt="Logo Galeri 24" class="h-12 max-w-[80px] w-auto object-contain flex-shrink-0">
+                    </div>
+                </div>
+
+                <!-- Antam -->
+                <div onclick="selectVendor('antam')" class="vendor-card cursor-pointer bg-white border-2 border-emerald-100 rounded-2xl p-4 shadow-sm transition-all hover:border-emerald-300 relative overflow-hidden group" data-vendor="antam">
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-emerald-700 block mb-1">ANTAM</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900" id="price-antam">Memuat...</h3>
+                            <span class="text-[11px] text-slate-500">per gram</span>
+                        </div>
+                        <img src="logo antam lm.png" alt="Logo Antam" class="h-12 max-w-[80px] w-auto object-contain flex-shrink-0">
+                    </div>
+                </div>
+
+                <!-- UBS Gold -->
+                <div onclick="selectVendor('ubs')" class="vendor-card cursor-pointer bg-white border-2 border-emerald-100 rounded-2xl p-4 shadow-sm transition-all hover:border-emerald-300 relative overflow-hidden group" data-vendor="ubs">
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-emerald-700 block mb-1">UBS GOLD</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900" id="price-ubs">Memuat...</h3>
+                            <span class="text-[11px] text-slate-500">per gram</span>
+                        </div>
+                        <img src="ubs gold logo.jpeg" alt="Logo UBS Gold" class="h-12 max-w-[80px] w-auto object-contain flex-shrink-0">
+                    </div>
+                </div>
+
+                <!-- Lotus Archi -->
+                <div onclick="selectVendor('lotus')" class="vendor-card cursor-pointer bg-white border-2 border-emerald-100 rounded-2xl p-4 shadow-sm transition-all hover:border-emerald-300 relative overflow-hidden group" data-vendor="lotus">
+                    <span class="text-xs font-bold text-slate-400 group-hover:text-emerald-700 block mb-1">LOTUS ARCHI</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900" id="price-lotus">Memuat...</h3>
+                            <span class="text-[11px] text-slate-500">per gram</span>
+                        </div>
+                        <img src="Logo-Lotus-Archi-Merah-1.webp" alt="Logo Lotus Archi" class="h-12 max-w-[80px] w-auto object-contain flex-shrink-0">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Grid Layout Utama -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- 2. PANEL PARAMETER SIMULASI (Kiri - 4 Kolom) -->
+            <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-emerald-100 h-fit space-y-5">
+                <div class="border-b border-emerald-50 pb-3 flex justify-between items-center">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-amber-500"></i> Parameter Simulasi
+                    </h2>
+                </div>
+
+                <form id="sim-form" onsubmit="event.preventDefault(); calculateTable();" class="space-y-4">
+                    <!-- Data Sales -->
+                    <div class="space-y-3 pb-4 border-b border-emerald-50">
+                        <label class="block text-xs font-bold text-slate-700">Data Sales</label>
+                        <div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-emerald-600 text-xs">
+                                    <i class="fa-solid fa-user"></i>
+                                </span>
+                                <input type="text" id="cust-name" placeholder="Nama Sales" required
+                                    class="w-full pl-9 pr-3 py-2 text-xs bg-emerald-50/40 border border-emerald-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005a36] transition-all">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-emerald-600 text-xs">
+                                    <i class="fa-solid fa-phone"></i>
+                                </span>
+                                <input type="tel" id="cust-phone" placeholder="Nomor HP / WhatsApp (Contoh: 0812...)" required
+                                    class="w-full pl-9 pr-3 py-2 text-xs bg-emerald-50/40 border border-emerald-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#005a36] transition-all">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ketentuan Pembelian Min 100 Gram -->
+                    <div class="bg-gradient-to-r from-amber-500/10 to-amber-500/5 border border-amber-300/60 p-3 rounded-xl">
+                        <div class="flex items-start gap-2.5">
+                            <input type="checkbox" id="is-min-100g" onchange="toggleMin100Gram(this.checked)" class="mt-0.5 accent-emerald-700 h-4 w-4 rounded cursor-pointer">
+                            <label for="is-min-100g" class="text-xs font-bold text-slate-900 cursor-pointer select-none">
+                                Pembelian Minimal 100 Gram
+                                <span class="block font-normal text-slate-600 text-[11px] mt-0.5 leading-tight">Centang untuk klaim suku bunga khusus (0,34% - 0,53%).</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Suku Bunga -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700">Suku Bunga (% / Bulan)</label>
+                            <span id="bunga-status-badge" class="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Bunga Standar</span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <button type="button" onclick="setInterest(0.92)" class="interest-btn py-2 text-xs font-extrabold rounded-xl border border-emerald-600 bg-[#005a36] text-white shadow-sm transition-all cursor-pointer" data-val="0.92">0,92%</button>
+                            <button type="button" id="btn-bunga-053" onclick="setInterest(0.53)" class="interest-btn py-2 text-xs font-extrabold rounded-xl border border-emerald-100 bg-emerald-50 text-slate-400 cursor-not-allowed opacity-60 transition-all" data-val="0.53" disabled title="Butuh minimal 100 gram">0,53%</button>
+                            <button type="button" id="btn-bunga-039" onclick="setInterest(0.39)" class="interest-btn py-2 text-xs font-extrabold rounded-xl border border-emerald-100 bg-emerald-50 text-slate-400 cursor-not-allowed opacity-60 transition-all" data-val="0.39" disabled title="Butuh minimal 100 gram">0,39%</button>
+                            <button type="button" id="btn-bunga-034" onclick="setInterest(0.34)" class="interest-btn py-2 text-xs font-extrabold rounded-xl border border-emerald-100 bg-emerald-50 text-slate-400 cursor-not-allowed opacity-60 transition-all" data-val="0.34" disabled title="Butuh minimal 100 gram">0,34%</button>
+                        </div>
+                    </div>
+
+                    <!-- Uang Muka (DP) & Transparansi Biaya Admin -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700">Uang Muka (DP)</label>
+                            <span id="dp-label" class="text-xs font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">20%</span>
+                        </div>
+                        <input type="range" id="dp-range" min="15" max="50" value="20" step="5" oninput="updateDpValue(this.value)"
+                            class="w-full accent-[#005a36] cursor-pointer h-1.5 bg-emerald-100 rounded-lg appearance-none">
+                        <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+                            <span>Min 15%</span>
+                            <span>Max 50%</span>
+                        </div>
+                        <!-- Info Transparansi Biaya Administrasi -->
+                        <div class="bg-emerald-50/50 border border-emerald-100 p-2.5 rounded-xl text-[11px] text-slate-600 space-y-1">
+                            <div class="flex justify-between font-semibold">
+                                <span>Biaya Administrasi:</span>
+                                <span class="text-emerald-900">+ Rp 50.000</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 italic leading-tight">
+                                * DP pada tabel otomatis ditambahkan biaya administrasi Rp 50.000.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Kalkulasi -->
+                    <button type="submit" class="w-full bg-[#005a36] hover:bg-[#00482b] text-white font-bold py-3 px-4 rounded-xl text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-calculator text-amber-400"></i> Perbarui Hasil Simulasi
+                    </button>
+                </form>
+            </div>
+
+            <!-- 3. TABEL GRAMASI & EXPORT (Kanan - 8 Kolom) -->
+            <div class="lg:col-span-8 space-y-4">
+                
+                <!-- Panel Header & Export -->
+                <div class="bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-800">Tabel Gramasi & Matriks Cicilan</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Vendor: <span class="font-bold text-emerald-800 uppercase" id="lbl-vendor">GALERI 24</span> | 
+                            Bunga Aktif: <span class="font-bold text-amber-600" id="lbl-interest">0.92%</span>
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <button id="btn-export-jpg" onclick="downloadJPG()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-image"></i> Export JPG
+                        </button>
+                        <button id="btn-export-pdf" onclick="downloadPDF()" class="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF (A4)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Area Tangkap Hasil Export (PDF / JPG) -->
+                <div id="export-area" class="bg-white rounded-2xl p-5 shadow-sm border border-emerald-100 space-y-3">
+                    
+                    <!-- Header Nota Simulasi khusus untuk Cetak/Export -->
+                    <div id="export-header-info" class="hidden pb-3 border-b border-emerald-100">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-white p-1 rounded-xl flex items-center justify-center h-12 w-auto flex-shrink-0 border border-slate-100">
+                                    <img src="Pegadaian_new_logo.png" alt="Logo PT Pegadaian" class="h-10 w-auto object-contain">
+                                </div>
+                                <div>
+                                    <span class="text-[9px] bg-emerald-900 text-amber-300 font-extrabold px-2 py-0.5 rounded tracking-wide uppercase">PT PEGADAIAN KANWIL X BANDUNG</span>
+                                    <h3 class="font-black text-sm text-slate-900 tracking-tight mt-0.5">LEMBAR SIMULASI PEMBIAYAAN EMAS</h3>
+                                    <p class="text-[10px] text-slate-500">Diterbitkan pada: <span class="export-date-val font-semibold text-slate-700"></span></p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="bg-emerald-100 text-emerald-900 text-xs font-extrabold px-3 py-1 rounded-lg uppercase border border-emerald-300" id="pdf-vendor">GALERI 24</span>
+                            </div>
+                        </div>
+                        <div class="mt-2 bg-emerald-50/50 border border-emerald-100 p-2.5 rounded-xl grid grid-cols-2 gap-4 text-xs">
+                            <div><span class="text-slate-400 block text-[9px]">NAMA SALES:</span> <span class="font-bold text-slate-800" id="pdf-name">-</span></div>
+                            <div><span class="text-slate-400 block text-[9px]">NO. WHATSAPP / HP:</span> <span class="font-bold text-slate-800" id="pdf-phone">-</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Tabel Utama -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-[10px]">
+                            <thead>
+                                <tr class="bg-[#005a36] text-white">
+                                    <th class="p-2 font-bold rounded-tl-xl whitespace-nowrap">Berat</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">Harga Dasar</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">DP (<span id="table-dp-pct">20</span>% + Admin)</th>
+                                    <th class="p-2 font-bold text-amber-300 whitespace-nowrap">Pinjaman</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">12 Bln</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">18 Bln</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">24 Bln</th>
+                                    <th class="p-2 font-bold whitespace-nowrap">30 Bln</th>
+                                    <th class="p-2 font-bold rounded-tr-xl text-right whitespace-nowrap">36 Bln</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-emerald-50 text-slate-700">
+                                <!-- Diisi secara otomatis oleh JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Footnote -->
+                    <div class="text-[9.5px] text-slate-400 pt-2 border-t border-emerald-50 flex flex-col sm:flex-row justify-between gap-1">
+                        <span>* DP sudah termasuk biaya admin Rp 50.000. Kolom Pinjaman = Harga Dasar - DP Murni.</span>
+                        <span class="font-semibold text-emerald-800">PT Pegadaian Kanwil X Bandung • Mengatasi Masalah Tanpa Masalah</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-emerald-100 mt-10 py-4 text-center text-xs text-slate-500">
+        <p>© 2026 PT Pegadaian Kanwil X Bandung • Monitoring Harga Emas Real-Time & Kalkulator Simulasi Cicilan</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        let goldPrices = {
+            galeri24: 0,
+            antam: 0,
+            ubs: 0,
+            lotus: 0
+        };
+
+        let currentActiveVendor = 'galeri24';
+        let selectedInterest = 0.92;
+        let selectedDpPercent = 20;
+        let isMin100gChecked = false;
+
+        const gramList = [0.5, 1, 2, 3, 5, 10, 25, 50, 100];
+        const tenorList = [12, 18, 24, 30, 36];
+
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        const PRICE_API_URL = (window.location.protocol === 'file:' ? 'http://127.0.0.1:8787' : '') + '/api/gold-prices';
+        const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+        let lastSuccessfulPriceSync = null;
+        let priceFetchInProgress = false;
+
+        function setSyncStatus(message, state = 'warning') {
+            const status = document.getElementById('sync-status');
+            const dot = document.getElementById('sync-dot');
+            if (status) status.textContent = message;
+            if (dot) {
+                dot.className = 'inline-block w-2 h-2 rounded-full ' +
+                    (state === 'success' ? 'bg-green-400' : state === 'error' ? 'bg-red-400' : 'bg-amber-400');
+            }
+        }
+
+        function validPrice(value) {
+            const number = Number(value);
+            return Number.isFinite(number) && Number.isInteger(number) && number >= 500000 && number <= 10000000;
+        }
+
+        async function fetchGaleri24Prices(manual = false) {
+            if (priceFetchInProgress) return;
+            priceFetchInProgress = true;
+            setSyncStatus(manual ? 'Memeriksa harga terbaru...' : 'Menyinkronkan harga...', 'warning');
+            try {
+                const response = await fetch(PRICE_API_URL + '?_=' + Date.now(), {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Backend harga merespons HTTP ' + response.status);
+                const data = await response.json();
+                if (!data || !data.prices || typeof data.prices !== 'object') {
+                    throw new Error('Format data harga dari backend tidak sesuai');
+                }
+
+                const updated = {};
+                for (const key of ['galeri24', 'antam', 'ubs', 'lotus']) {
+                    if (validPrice(data.prices[key])) updated[key] = Number(data.prices[key]);
+                }
+
+                Object.assign(goldPrices, updated);
+                updatePriceCardsDisplay();
+                calculateTable();
+                lastSuccessfulPriceSync = new Date();
+                document.getElementById('price-updated-at').textContent =
+                    lastSuccessfulPriceSync.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+                
+                setSyncStatus('Harga berhasil disinkronkan secara real-time', 'success');
+            } catch (error) {
+                console.error('Sinkronisasi harga gagal:', error);
+                setSyncStatus('Gagal mengambil harga terbaru.', 'error');
+            } finally {
+                priceFetchInProgress = false;
+            }
+        }
+
+        function updatePriceCardsDisplay() {
+            document.getElementById('price-galeri24').innerText = 'Rp ' + (goldPrices.galeri24 || 0).toLocaleString('id-ID');
+            document.getElementById('price-antam').innerText = 'Rp ' + (goldPrices.antam || 0).toLocaleString('id-ID');
+            document.getElementById('price-ubs').innerText = 'Rp ' + (goldPrices.ubs || 0).toLocaleString('id-ID');
+            document.getElementById('price-lotus').innerText = 'Rp ' + (goldPrices.lotus || 0).toLocaleString('id-ID');
+        }
+
+        function selectVendor(vendorKey) {
+            currentActiveVendor = vendorKey;
+            let currentVendorName = vendorKey.toUpperCase();
+            if(vendorKey === 'galeri24') currentVendorName = 'GALERI 24';
+            if(vendorKey === 'ubs') currentVendorName = 'UBS GOLD';
+            if(vendorKey === 'lotus') currentVendorName = 'LOTUS ARCHI';
+
+            document.querySelectorAll('.vendor-card').forEach(card => {
+                card.classList.remove('border-emerald-600', 'shadow-md');
+                card.classList.add('border-emerald-100');
+                const badge = card.querySelector('.vendor-badge');
+                if(badge) badge.remove();
+            });
+
+            const activeCard = document.querySelector(`[data-vendor="${vendorKey}"]`);
+            if (activeCard) {
+                activeCard.classList.remove('border-emerald-100');
+                activeCard.classList.add('border-emerald-600', 'shadow-md');
+                activeCard.insertAdjacentHTML('beforeend', '<div class="vendor-badge absolute top-0 right-0 bg-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-bl-lg shadow-sm">ACTIVE</div>');
+            }
+
+            document.getElementById('lbl-vendor').innerText = currentVendorName;
+            calculateTable();
+        }
+
+        function toggleMin100Gram(isChecked) {
+            isMin100gChecked = isChecked;
+            const specialButtons = ['btn-bunga-053', 'btn-bunga-039', 'btn-bunga-034'];
+            const badge = document.getElementById('bunga-status-badge');
+
+            specialButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (isChecked) {
+                    btn.removeAttribute('disabled');
+                    btn.classList.remove('bg-emerald-50', 'text-slate-400', 'cursor-not-allowed', 'opacity-60');
+                    btn.classList.add('bg-white', 'text-slate-700', 'hover:bg-emerald-50', 'cursor-pointer');
+                } else {
+                    btn.setAttribute('disabled', 'true');
+                    btn.classList.add('bg-emerald-50', 'text-slate-400', 'cursor-not-allowed', 'opacity-60');
+                    btn.classList.remove('bg-[#005a36]', 'border-emerald-600', 'text-white', 'bg-white', 'text-slate-700', 'cursor-pointer');
+                }
+            });
+
+            if (isChecked) {
+                badge.innerText = "Suku Bunga Khusus Terbuka";
+                badge.classList.remove('bg-emerald-100', 'text-emerald-800');
+                badge.classList.add('bg-emerald-200', 'text-emerald-900');
+            } else {
+                badge.innerText = "Bunga Standar";
+                badge.classList.remove('bg-emerald-200', 'text-emerald-900');
+                badge.classList.add('bg-emerald-100', 'text-emerald-800');
+                if (selectedInterest !== 0.92) setInterest(0.92);
+            }
+
+            calculateTable();
+        }
+
+        function setInterest(val) {
+            if (val !== 0.92 && !isMin100gChecked) return;
+
+            selectedInterest = val;
+            document.querySelectorAll('.interest-btn').forEach(btn => {
+                btn.classList.remove('bg-[#005a36]', 'border-emerald-600', 'text-white');
+                if(!btn.hasAttribute('disabled')) {
+                    btn.classList.add('bg-white', 'border-emerald-200', 'text-slate-700');
+                }
+            });
+            
+            const activeBtn = document.querySelector(`[data-val="${val}"]`);
+            if(activeBtn && !activeBtn.hasAttribute('disabled')) {
+                activeBtn.classList.remove('bg-white', 'border-emerald-200', 'text-slate-700');
+                activeBtn.classList.add('bg-[#005a36]', 'border-emerald-600', 'text-white');
+            }
+            
+            document.getElementById('lbl-interest').innerText = val + '%';
+            calculateTable();
+        }
+
+        function updateDpValue(val) {
+            selectedDpPercent = parseInt(val);
+            document.getElementById('dp-label').innerText = val + '%';
+            document.getElementById('table-dp-pct').innerText = val;
+            calculateTable();
+        }
+
+        function calculateTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            const currentGoldPrice = goldPrices[currentActiveVendor] || 0;
+
+            gramList.forEach((gram, index) => {
+                let activeRowInterest = selectedInterest;
+                if (selectedInterest !== 0.92 && !isMin100gChecked && gram < 100) {
+                    activeRowInterest = 0.92;
+                }
+
+                const totalPrice = gram * currentGoldPrice;
+                const dpPure = totalPrice * (selectedDpPercent / 100);
+                const downPaymentTotal = dpPure + 50000;
+                const loanAmount = totalPrice - dpPure;
+                
+                let tenorCells = '';
+                tenorList.forEach((tenor, tIdx) => {
+                    const principalPerMonth = loanAmount / tenor;
+                    const interestPerMonth = loanAmount * (activeRowInterest / 100);
+                    const monthlyInstallment = principalPerMonth + interestPerMonth;
+                    const isLast = tIdx === tenorList.length - 1;
+                    
+                    tenorCells += `<td class="p-2 font-semibold text-slate-800 whitespace-nowrap ${isLast ? 'text-right text-emerald-800 font-bold' : ''}">Rp ${Math.round(monthlyInstallment).toLocaleString('id-ID')}</td>`;
+                });
+
+                const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-emerald-50/20';
+
+                const row = `
+                    <tr class="${rowBg} hover:bg-emerald-50/60 transition-colors">
+                        <td class="p-2 font-bold text-slate-900 whitespace-nowrap">${gram}g</td>
+                        <td class="p-2 font-medium whitespace-nowrap">Rp ${Math.round(totalPrice).toLocaleString('id-ID')}</td>
+                        <td class="p-2 text-slate-600 whitespace-nowrap">Rp ${Math.round(downPaymentTotal).toLocaleString('id-ID')}</td>
+                        <td class="p-2 font-bold text-emerald-800 whitespace-nowrap">Rp ${Math.round(loanAmount).toLocaleString('id-ID')}</td>
+                        ${tenorCells}
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function getSalesFilename() {
+            const rawName = document.getElementById('cust-name').value.trim();
+            if (!rawName) return 'Simulasi_Umum';
+            const cleanName = rawName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            return `Simulasi_${cleanName}`;
+        }
+
+        function prepareExportData() {
+            const name = document.getElementById('cust-name').value || 'Tamu / Umum';
+            const phone = document.getElementById('cust-phone').value || '-';
+            let vendorDisplay = currentActiveVendor.toUpperCase();
+            if(currentActiveVendor === 'galeri24') vendorDisplay = 'GALERI 24';
+            if(currentActiveVendor === 'ubs') vendorDisplay = 'UBS GOLD';
+            if(currentActiveVendor === 'lotus') vendorDisplay = 'LOTUS ARCHI';
+            
+            document.getElementById('pdf-name').innerText = name;
+            document.getElementById('pdf-phone').innerText = phone;
+            document.getElementById('pdf-vendor').innerText = vendorDisplay;
+            
+            const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.querySelectorAll('.export-date-val').forEach(el => el.innerText = todayStr);
+
+            document.getElementById('export-header-info').classList.remove('hidden');
+        }
+
+        function cleanupExportData() {
+            document.getElementById('export-header-info').classList.add('hidden');
+        }
+
+        // Export PDF
+        function downloadPDF() {
+            prepareExportData();
+            const originalTitle = document.title;
+            const fileName = getSalesFilename();
+            document.title = fileName;
+
+            setTimeout(() => {
+                window.print();
+                document.title = originalTitle;
+                cleanupExportData();
+            }, 300);
+        }
+
+        // Export JPG aman dari CORS Tainted Canvas
+        function downloadJPG() {
+            prepareExportData();
+            const btnJpg = document.getElementById('btn-export-jpg');
+            const originalText = btnJpg.innerHTML;
+            btnJpg.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+            btnJpg.disabled = true;
+
+            setTimeout(() => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const width = 1260;
+                    const rowCount = gramList.length;
+                    const height = 330 + (rowCount * 32); 
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Background Putih
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, width, height);
+
+                    // Header Banner Hijau Pegadaian
+                    ctx.fillStyle = '#005a36';
+                    ctx.fillRect(0, 0, width, 90);
+
+                    // Teks Header Banner (Tanpa logo lokal agar terhindar dari error CORS file://)
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillText('PT PEGADAIAN KANWIL X BANDUNG', 40, 32);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 20px sans-serif';
+                    ctx.fillText('LEMBAR SIMULASI PEMBIAYAAN EMAS', 40, 62);
+
+                    // Info Tanggal & Vendor
+                    let vendorDisplay = currentActiveVendor.toUpperCase();
+                    if(currentActiveVendor === 'galeri24') vendorDisplay = 'GALERI 24';
+                    if(currentActiveVendor === 'ubs') vendorDisplay = 'UBS GOLD';
+                    if(currentActiveVendor === 'lotus') vendorDisplay = 'LOTUS ARCHI';
+
+                    const todayStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText(`Diterbitkan: ${todayStr}`, width - 280, 38);
+                    ctx.fillText(`Vendor: ${vendorDisplay}`, width - 280, 60);
+
+                    // Box Data Sales
+                    ctx.fillStyle = '#f0fdf4';
+                    ctx.fillRect(40, 105, width - 80, 50);
+                    ctx.strokeStyle = '#bbf7d0';
+                    ctx.strokeRect(40, 105, width - 80, 50);
+
+                    const name = document.getElementById('cust-name').value || 'Tamu / Umum';
+                    const phone = document.getElementById('cust-phone').value || '-';
+
+                    ctx.fillStyle = '#334155';
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.fillText(`Nama Sales: ${name}`, 60, 135);
+                    ctx.fillText(`No. WhatsApp / HP: ${phone}`, 450, 135);
+                    ctx.fillText(`Bunga Aktif: ${selectedInterest}%`, 900, 135);
+
+                    // Header Tabel
+                    const tableTop = 175;
+                    ctx.fillStyle = '#005a36';
+                    ctx.fillRect(40, tableTop, width - 80, 35);
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 11px sans-serif';
+                    
+                    const cols = [
+                        { label: 'Berat', x: 55 },
+                        { label: 'Harga Dasar', x: 125 },
+                        { label: `DP (${selectedDpPercent}% + Admin)`, x: 265 },
+                        { label: 'Pinjaman', x: 440 },
+                        { label: '12 Bln', x: 570 },
+                        { label: '18 Bln', x: 690 },
+                        { label: '24 Bln', x: 810 },
+                        { label: '30 Bln', x: 930 },
+                        { label: '36 Bln', x: 1050 }
+                    ];
+
+                    cols.forEach(col => ctx.fillText(col.label, col.x, tableTop + 22));
+
+                    // Isi Baris Tabel
+                    const currentGoldPrice = goldPrices[currentActiveVendor] || 0;
+
+                    gramList.forEach((gram, index) => {
+                        const y = tableTop + 35 + (index * 32);
+                        
+                        ctx.fillStyle = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                        ctx.fillRect(40, y, width - 80, 32);
+
+                        ctx.strokeStyle = '#f1f5f9';
+                        ctx.beginPath();
+                        ctx.moveTo(40, y + 32);
+                        ctx.lineTo(width - 40, y + 32);
+                        ctx.stroke();
+
+                        let activeRowInterest = selectedInterest;
+                        if (selectedInterest !== 0.92 && !isMin100gChecked && gram < 100) {
+                            activeRowInterest = 0.92;
+                        }
+
+                        const totalPrice = gram * currentGoldPrice;
+                        const dpPure = totalPrice * (selectedDpPercent / 100);
+                        const downPaymentTotal = dpPure + 50000;
+                        const loanAmount = totalPrice - dpPure;
+
+                        ctx.fillStyle = '#0f172a';
+                        ctx.font = '11px sans-serif';
+
+                        ctx.fillText(`${gram}g`, cols[0].x, y + 20);
+                        ctx.fillText(`Rp ${Math.round(totalPrice).toLocaleString('id-ID')}`, cols[1].x, y + 20);
+                        ctx.fillText(`Rp ${Math.round(downPaymentTotal).toLocaleString('id-ID')}`, cols[2].x, y + 20);
+                        
+                        ctx.fillStyle = '#005a36';
+                        ctx.font = 'bold 11px sans-serif';
+                        ctx.fillText(`Rp ${Math.round(loanAmount).toLocaleString('id-ID')}`, cols[3].x, y + 20);
+
+                        ctx.fillStyle = '#334155';
+                        ctx.font = '11px sans-serif';
+
+                        tenorList.forEach((tenor, tIdx) => {
+                            const principalPerMonth = loanAmount / tenor;
+                            const interestPerMonth = loanAmount * (activeRowInterest / 100);
+                            const monthlyInstallment = principalPerMonth + interestPerMonth;
+
+                            ctx.fillText(`Rp ${Math.round(monthlyInstallment).toLocaleString('id-ID')}`, cols[4 + tIdx].x, y + 20);
+                        });
+                    });
+
+                    // Footnote
+                    const footerY = tableTop + 35 + (gramList.length * 32) + 25;
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '10px sans-serif';
+                    ctx.fillText('* DP sudah termasuk biaya admin Rp 50.000. Kolom Pinjaman = Harga Dasar - DP Murni.', 40, footerY);
+                    ctx.fillText('PT Pegadaian Kanwil X Bandung • Mengatasi Masalah Tanpa Masalah', width - 360, footerY);
+
+                    // Unduh File JPG
+                    const fileName = getSalesFilename();
+                    const link = document.createElement('a');
+                    link.download = `${fileName}.jpg`;
+                    link.href = canvas.toDataURL('image/jpeg', 0.95);
+                    link.click();
+
+                } catch (err) {
+                    console.error("Gagal export JPG:", err);
+                    alert("Terjadi kesalahan saat mengunduh gambar JPG: " + err.message);
+                } finally {
+                    cleanupExportData();
+                    btnJpg.innerHTML = originalText;
+                    btnJpg.disabled = false;
+                }
+            }, 100);
+        }
+
+        window.addEventListener('load', function() {
+            updatePriceCardsDisplay();
+            calculateTable();
+            fetchGaleri24Prices();
+            setInterval(() => fetchGaleri24Prices(false), PRICE_REFRESH_INTERVAL_MS);
+        });
+    </script>
+</body>
+</html>

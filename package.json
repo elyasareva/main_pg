@@ -1,0 +1,16 @@
+{
+  "name": "galeri24-local-price-proxy",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Proxy lokal untuk menyinkronkan harga emas real-time dari API publik",
+  "main": "server.js",
+  "scripts": { 
+    "start": "node server.js" 
+  },
+  "engines": { 
+    "node": ">=18" 
+  },
+  "dependencies": { 
+    "cheerio": "^1.0.0" 
+  }
+}
